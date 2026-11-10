@@ -17,63 +17,20 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #include "CameraController.h"
 #include "ParticlePrimitives.h"
 
+#include <random>
+
+float GetRandomFloatRange(float low, float high)
+{
+	std::random_device rd;
+
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<float> dist(low, high);
+
+	return dist(gen);
+}
+
 CameraController camera;
-
-ParticleManager pm;
-
-void SpawnParticle()
-{
-	int x = GetRandomValue(-10, 10);
-	int y = GetRandomValue(-1, 1);
-	int z = GetRandomValue(-10, 10);
-
-	pm.AddCubeParticle({ (float)x, (float)y, (float)z }, Color(255, 0, 0, 255));
-}
-
-void SpawnParticles()
-{
-	for (int i = 0; i < 3; i++)
-	{
-		SpawnParticle();
-	}
-}
-
-void ApplyForce(BaseParticle* bp)
-{
-	Vector3 force(0, 0.5f, 0);
-
-	bp->force += force;
-	bp->acceleration += force;
-	bp->position += bp->acceleration * GetFrameTime();
-}
-
-void ManageParticles()
-{
-	int particlesToSpawn = 0;
-
-	std::erase_if(pm.particles, [&particlesToSpawn](auto& particle)
-	{
-		if (!particle->lifeTime)
-			return false;
-
-		particle->lifeTime -= GetFrameTime();
-
-		if (particle->lifeTime <= 0)
-		{
-			++particlesToSpawn;
-			delete particle;
-			return true;
-		}
-
-		ApplyForce(particle);
-		return false;
-	});
-
-	for (int i = 0; i < particlesToSpawn; ++i)
-	{
-		SpawnParticle();
-	}
-}
+ParticleSpawner ps;
 
 int main ()
 {
@@ -87,7 +44,22 @@ int main ()
 	float yaw = 0.0f;
 	float roll = 0.0f;
 
-	SpawnParticles();
+	const int ParticlesToSpawn = 1000;
+	ps.SpawnParticles(ParticlesToSpawn);
+
+	UpforceProperty upforceProperty;
+	WaveProperty waveProperty;
+	ColorChangeProperty ccp;
+	FadeoutColorProperty fcp;
+
+	for (int i = 0; i < ParticlesToSpawn; i++)
+	{
+		ps.particles[i]->SetLifeTime(GetRandomFloatRange(1.0, 2.0));
+		ps.particles[i]->AttatchProperty(&upforceProperty);
+		ps.particles[i]->AttatchProperty(&waveProperty);
+		ps.particles[i]->AttatchProperty(&ccp);
+		ps.particles[i]->AttatchProperty(&fcp);
+	}
 
 	while (!WindowShouldClose())
 	{
@@ -102,10 +74,8 @@ int main ()
 
 		BeginMode3D(camera.cam);
 
-		ManageParticles();
-
-		pm.RenderAllParticles();
-		//DrawText("Hello Raylib", 200, 200, 20, WHITE);
+		ps.ManageParticles();
+		ps.RenderAllParticles();
 
 		DrawGrid(10, 10.0f);
 		EndMode3D();
