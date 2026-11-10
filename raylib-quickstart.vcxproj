@@ -302,6 +302,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\CameraController.h" />
+    <ClInclude Include="src\rlights.h" />
     <ClInclude Include="src\ModelLoading.h" />
     <ClInclude Include="src\ParticlePrimitives.h" />
     <ClInclude Include="src\resource_dir.h" />
@@ -310,6 +311,8 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="lighting.fs" />
+    <None Include="lighting.vs" />
     <None Include="src\icon.ico" />
   </ItemGroup>
   <ItemGroup>

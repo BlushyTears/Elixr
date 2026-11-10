@@ -27,6 +27,9 @@
     <ClInclude Include="src\ParticlePrimitives.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\rlights.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -35,6 +38,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="src\icon.ico">
+      <Filter>Windows Resource Files</Filter>
+    </None>
+    <None Include="lighting.vs">
+      <Filter>Windows Resource Files</Filter>
+    </None>
+    <None Include="lighting.fs">
       <Filter>Windows Resource Files</Filter>
     </None>
   </ItemGroup>
