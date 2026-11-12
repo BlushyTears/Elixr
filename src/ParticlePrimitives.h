@@ -6,6 +6,15 @@
 #include <vector>
 #include <queue>
 
+#include <random>
+
+float GetRandomFloatRange(float low, float high)
+{
+	static std::mt19937 gen(std::random_device{}());
+	std::uniform_real_distribution<float> dist(low, high);
+	return dist(gen);
+}
+
 struct PropertyBase;
 
 struct BaseParticle
@@ -43,7 +52,7 @@ struct BaseParticle
 
 	void ResetParticle()
 	{
-		force = { 0, 0, 0 };
+		//force = { 0, 0, 0 };
 		scale = originalScale;
 	}
 	
@@ -55,11 +64,13 @@ struct BaseParticle
 
 	float startingLifeTime = 0;
 	float lifeTime = 0;
+	bool shouldDie = true;
 	bool activated = false;
 	Color color;
 
 	float originalScale = 2;
 	float scale = 1;
+	int idx = 0;
 };
 
 struct CubeParticle : BaseParticle
@@ -104,105 +115,55 @@ struct SphereParticle : BaseParticle
 	}
 };
 
-// A module that describes some sort of behavior to a particle ecs style
-struct PropertyBase
-{
-	virtual ~PropertyBase() = default;
-	virtual void Update(BaseParticle* pm) = 0;
-};
+// Due to circular dependencies we have to put properties header down here :(
+#include "Properties.h"
 
-struct WaveProperty : PropertyBase
-{
-	Vector3 baseForce = Vector3(0, 0.01, 0);
-	float amplitude = 0.05f;
-	float freq = 3.0f;
-
-	void Update(BaseParticle* pm) override
-	{
-		float globalTime = (float)GetTime();
-		float uniqueSeed = (float)((uintptr_t)pm % 1000) * 0.1f;
-
-		float angle = (globalTime * freq) + uniqueSeed;
-
-		Vector3 wave = Vector3(cosf(angle), 0, sinf(angle));
-		pm->force += baseForce + wave;
-		pm->acceleration += pm->force;
-		pm->position += pm->acceleration * GetFrameTime();
-	}
-};
-
-struct UpforceProperty : PropertyBase
-{
-	Vector3 baseForce = Vector3(0, 0.1, 0);
-
-	void Update(BaseParticle* pm) override
-	{
-		pm->force += baseForce;
-		pm->acceleration += pm->force;
-		pm->position += pm->acceleration * GetFrameTime();
-	}
-};
-
-struct ColorChangeProperty : PropertyBase
-{
-	void Update(BaseParticle* pm) override
-	{
-		pm->SetColor(Color( GetRandomValue(0, 0), GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255) ));
-	}
-};
-
-struct FadeoutColorProperty : PropertyBase
-{
-	void Update(BaseParticle* pm) override
-	{
-		float alpha = pm->lifeTime / pm->startingLifeTime;
-
-		pm->SetColor(Color(pm->color.r, pm->color.g, pm->color.b, GetRandomValue(1, 255 * alpha)));
-		
-		if (pm->lifeTime <= 0.3f)
-			pm->scale -= 0.0001f;
-	}
-};
-
-struct ParticleSpawner
+struct ParticleEmitter
 {
 	std::vector<BaseParticle*> particles;
 
-	void AddCubeParticle(Vector3 _pos, Color _clr)
+	void AddCubeParticle(Vector3 _pos, Color _clr, bool shouldDie = true)
 	{
 		CubeParticle* cp = new CubeParticle(0.3f, _pos, _clr);
 		particles.push_back(cp);
+		cp->idx = particles.size() - 1;
+		cp->shouldDie = shouldDie;
+		cp->activated = true;
 	}
 
-	void AddSphereParticle(Vector3 _pos, Color _clr)
-	{
-		SphereParticle* sp = new SphereParticle(0.3f, _pos, _clr);
-		particles.push_back(sp);
-	}
-
-	void RenderAllParticles()
+	void RenderAllParticles(FlockbehaviorProperty* flockProp = nullptr)
 	{
 		for (auto& particle : particles)
 		{
-			if(particle->activated)
+			if (particle->activated)
 				particle->Draw();
+
+			for (auto& property : particle->properties)
+			{
+				property->UpdateTarget(particle);
+			}
+		}
+
+		if (flockProp != nullptr)
+		{
+			DrawSphere(flockProp->target, 1.0f, PURPLE);
 		}
 	}
 
-	void SpawnParticle(Color color = {200, 0, 0, 0})
+	void SpawnParticle(bool shouldDie = true, Color color = {200, 0, 0, 0})
 	{
 		int x = GetRandomValue(-10, 10);
 		int y = GetRandomValue(-1, 1);
 		int z = GetRandomValue(-10, 10);
 
-		AddCubeParticle({ (float)x, (float)y, (float)z }, color);
+		AddCubeParticle({ (float)x, (float)y, (float)z }, color, shouldDie);
 	}
 
-	void SpawnParticles(int amount = 1)
+	void SpawnParticles(int amount = 1, bool shoulDie = true)
 	{
 		for (int i = 0; i < amount; i++)
 		{
-			SpawnParticle();
+			SpawnParticle(shoulDie);
 		}
 	}
 
@@ -210,30 +171,35 @@ struct ParticleSpawner
 	{
 		int particlesToSpawn = 0;
 		std::queue<BaseParticle*> tempHolder;
-		
+
+		for (int i = 0; i < this->particles.size(); ++i)
+		{
+			this->particles[i]->idx = i;
+		}
+
 		std::erase_if(this->particles, [&particlesToSpawn, &tempHolder, this](auto particle)
 		{
-			if (!particle->lifeTime)
+			if (particle->lifeTime <= 0 && !particle->activated)
 				return false;
 
 			particle->lifeTime -= GetFrameTime();
 
-			if (particle->lifeTime <= 0)
+			if (particle->shouldDie)
 			{
-				++particlesToSpawn;
-
-				BaseParticle* ref = particle;
-				tempHolder.push(ref->clone());
-
-				delete particle;
-				return true;
+				if (particle->lifeTime <= 0 && particle->shouldDie)
+				{
+					++particlesToSpawn;
+					tempHolder.push(particle->clone());
+					delete particle;
+					return true;
+				}
 			}
 
 			particle->ResetParticle();
 
 			for (auto& property : particle->properties)
 			{
-				property->Update(particle);
+				property->Update(particle, GetFrameTime(), this->particles);
 			}
 
 			return false;
@@ -242,21 +208,19 @@ struct ParticleSpawner
 		for (int i = 0; i < particlesToSpawn; ++i)
 		{
 			BaseParticle* front = tempHolder.front();
-			this->SpawnParticle(front->color);
-			
+			this->SpawnParticle(front->shouldDie, front->color);
+
 			auto particle = this->particles[this->particles.size() - 1];
 			particle->activated = true;
+			particle->SetLifeTime(GetRandomFloatRange(1.0f, 2.0f));
 
-			particle->SetLifeTime(front->startingLifeTime);
-			tempHolder.pop();
-
-			// re-attatch the same properties to newly spawned particle
 			for (auto& property : front->properties)
 			{
 				particle->properties.push_back(property);
 			}
 
 			delete front;
+			tempHolder.pop();
 		}
 	}
 };

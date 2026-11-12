@@ -20,7 +20,6 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define RLIGHTS_IMPLEMENTATION
 #include "rlights.h"
 
-#include <random>
 
 #if defined(PLATFORM_DESKTOP)
 #define GLSL_VERSION            330
@@ -28,18 +27,8 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define GLSL_VERSION            100
 #endif
 
-float GetRandomFloatRange(float low, float high)
-{
-	std::random_device rd;
-
-	std::mt19937 gen(rd());
-	std::uniform_real_distribution<float> dist(low, high);
-
-	return dist(gen);
-}
-
 CameraController camera;
-ParticleSpawner ps;
+ParticleEmitter pe;
 
 int main ()
 {
@@ -54,20 +43,26 @@ int main ()
 	float roll = 0.0f;
 
 	const int ParticlesToSpawn = 1000;
-	ps.SpawnParticles(ParticlesToSpawn);
+	pe.SpawnParticles(ParticlesToSpawn, false);
 
-	UpforceProperty upforceProperty;
+	SingleForceProperty upforceProperty;
 	WaveProperty waveProperty;
 	ColorChangeProperty ccp;
+	ColorStaticProperty csp;
 	FadeoutColorProperty fcp;
+	FlockbehaviorProperty fbp;
+	VortexProperty vp;
 
 	for (int i = 0; i < ParticlesToSpawn; i++)
 	{
-		ps.particles[i]->SetLifeTime(GetRandomFloatRange(1.0, 2.0));
-		ps.particles[i]->AttatchProperty(&upforceProperty);
-		ps.particles[i]->AttatchProperty(&waveProperty);
-		ps.particles[i]->AttatchProperty(&ccp);
-		ps.particles[i]->AttatchProperty(&fcp);
+		pe.particles[i]->SetLifeTime(GetRandomFloatRange(1.0, 5.0));
+		//pe.particles[i]->AttatchProperty(&upforceProperty);
+		//pe.particles[i]->AttatchProperty(&waveProperty);
+		//pe.particles[i]->AttatchProperty(&ccp);
+		pe.particles[i]->AttatchProperty(&csp);
+		pe.particles[i]->AttatchProperty(&fcp);
+		pe.particles[i]->AttatchProperty(&fbp);
+		pe.particles[i]->AttatchProperty(&vp);
 	}
 
 	Shader shader = LoadShader(TextFormat("resources/shaders/glsl%i/lighting.vs", GLSL_VERSION),
@@ -100,13 +95,13 @@ int main ()
 
 		BeginMode3D(camera.cam);
 
-		BeginShaderMode(shader);
-			DrawPlane(Vector3Zero(), (Vector2) ( 10.0, 10.0 ), WHITE);
-			DrawCube(Vector3Zero(), 2.0, 4.0, 2.0, WHITE);
-		EndShaderMode();
+		//BeginShaderMode(shader);
+		//	DrawPlane(Vector3Zero(), (Vector2) ( 10.0, 10.0 ), WHITE);
+		//	DrawCube(Vector3Zero(), 2.0, 4.0, 2.0, WHITE);
+		//EndShaderMode();
 
-		ps.ManageParticles();
-		ps.RenderAllParticles();
+		pe.ManageParticles();
+		pe.RenderAllParticles(&fbp);
 
 		DrawGrid(10, 10.0f);
 		EndMode3D();

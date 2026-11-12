@@ -30,6 +30,9 @@
     <ClInclude Include="src\rlights.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Properties.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

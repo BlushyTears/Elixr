@@ -302,6 +302,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\CameraController.h" />
+    <ClInclude Include="src\Properties.h" />
     <ClInclude Include="src\rlights.h" />
     <ClInclude Include="src\ModelLoading.h" />
     <ClInclude Include="src\ParticlePrimitives.h" />
