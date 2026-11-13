@@ -104,7 +104,7 @@ struct ParticleEmitter
 		cp->activated = true;
 	}
 
-	void RenderAllParticles(FlockbehaviorProperty* flockProp = nullptr)
+	void RenderAllParticles()
 	{
 		for (auto& particle : particles)
 		{
@@ -115,11 +115,6 @@ struct ParticleEmitter
 			{
 				property->UpdateTarget(particle);
 			}
-		}
-
-		if (flockProp != nullptr)
-		{
-			DrawSphere(flockProp->target, 1.0f, PURPLE);
 		}
 	}
 

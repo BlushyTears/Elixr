@@ -1,7 +1,7 @@
 #version 330
 
 precision mediump float;
-
+// stolen from: https://github.com/raysan5/raylib/blob/master/examples/shaders/shaders_basic_lighting.c
 // Input vertex attributes (from vertex shader)
 varying vec3 fragPosition;
 varying vec2 fragTexCoord;
@@ -14,7 +14,7 @@ uniform vec4 colDiffuse;
 
 // NOTE: Add your custom variables here
 
-#define     MAX_LIGHTS              4
+#define     MAX_LIGHTS              2
 #define     LIGHT_DIRECTIONAL       0
 #define     LIGHT_POINT             1
 
@@ -64,7 +64,7 @@ void main()
             lightDot += lights[i].color.rgb*NdotL;
 
             float specCo = 0.0;
-            if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // 16 refers to shine
+            if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 4.0); // 16 refers to shine
             specular += specCo;
         }
     }

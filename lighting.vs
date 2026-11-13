@@ -1,5 +1,7 @@
 #version 330
 
+// stolen from: https://github.com/raysan5/raylib/blob/master/examples/shaders/shaders_basic_lighting.c
+
 // Input vertex attributes
 attribute vec3 vertexPosition;
 attribute vec2 vertexTexCoord;

@@ -311,6 +311,7 @@ struct FlockbehaviorProperty : PropertyBase
 
 		if (pm->idx == 0)
 		{
+			DrawSphere(target, 1.0f, PURPLE);
 			currentTimer -= dt;
 			if (currentTimer <= 0)
 			{
