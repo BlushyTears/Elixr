@@ -20,7 +20,6 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define RLIGHTS_IMPLEMENTATION
 #include "rlights.h"
 
-
 #if defined(PLATFORM_DESKTOP)
 #define GLSL_VERSION            330
 #else   // PLATFORM_ANDROID, PLATFORM_WEB
@@ -47,22 +46,24 @@ int main ()
 
 	SingleForceProperty upforceProperty;
 	WaveProperty waveProperty;
-	ColorChangeProperty ccp;
+	RandomColorChangeProperty ccp;
 	ColorStaticProperty csp;
 	FadeoutColorProperty fcp;
 	FlockbehaviorProperty fbp;
 	VortexProperty vp;
+	PointAttractorProperty pap;
 
 	for (int i = 0; i < ParticlesToSpawn; i++)
 	{
 		pe.particles[i]->SetLifeTime(GetRandomFloatRange(1.0, 5.0));
 		//pe.particles[i]->AttatchProperty(&upforceProperty);
 		//pe.particles[i]->AttatchProperty(&waveProperty);
-		//pe.particles[i]->AttatchProperty(&ccp);
-		pe.particles[i]->AttatchProperty(&csp);
-		pe.particles[i]->AttatchProperty(&fcp);
+		pe.particles[i]->AttatchProperty(&ccp);
+		//pe.particles[i]->AttatchProperty(&csp);
+		//pe.particles[i]->AttatchProperty(&fcp);
 		pe.particles[i]->AttatchProperty(&fbp);
-		pe.particles[i]->AttatchProperty(&vp);
+		//pe.particles[i]->AttatchProperty(&vp);
+		//pe.particles[i]->AttatchProperty(&pap);
 	}
 
 	Shader shader = LoadShader(TextFormat("resources/shaders/glsl%i/lighting.vs", GLSL_VERSION),
@@ -83,17 +84,20 @@ int main ()
 
 	while (!WindowShouldClose())
 	{
+		UpdateCamera(&camera.cam, CAMERA_FREE);
+		DisableCursor();
+
 		Vector3 angle = { DEG2RAD * pitch, DEG2RAD * yaw, DEG2RAD * roll };
 
 		model.transform = MatrixRotateXYZ(angle);
 		DrawPlane(Vector3Zero(), (Vector2) ( 10.0, 10.0 ), WHITE);
 		DrawCube(Vector3Zero(), 2.0, 4.0, 2.0, WHITE);
-		camera.Freecam();
 
 		BeginDrawing();
 		ClearBackground(BLACK);
 
 		BeginMode3D(camera.cam);
+
 
 		//BeginShaderMode(shader);
 		//	DrawPlane(Vector3Zero(), (Vector2) ( 10.0, 10.0 ), WHITE);

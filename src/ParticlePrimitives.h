@@ -19,9 +19,24 @@ struct PropertyBase;
 
 struct BaseParticle
 {
-	virtual ~BaseParticle() = default;
-	virtual void Draw() = 0;
-	virtual BaseParticle* clone() = 0;
+
+	BaseParticle(float _scale, Vector3 _pos, Color _clr)
+	{
+		this->originalScale = _scale;
+		this->scale = _scale;
+		this->position = _pos;
+		this->color = _clr;
+	}
+
+	BaseParticle* clone()
+	{
+		return new BaseParticle(*this);
+	}
+
+	void Draw()
+	{
+		DrawCube(this->position, this->scale, this->scale, this->scale, this->color);
+	}
 
 	void SetLifeTime(float _lifeTime)
 	{
@@ -73,48 +88,6 @@ struct BaseParticle
 	int idx = 0;
 };
 
-struct CubeParticle : BaseParticle
-{
-	CubeParticle(float _scale, Vector3 _pos, Color _clr)
-	{
-		this->originalScale = _scale;
-		this->scale = _scale;
-		this->position = _pos;
-		this->color = _clr;
-	}
-
-	BaseParticle* clone() override
-	{
-		return new CubeParticle(*this);
-	}
-
-	void Draw() override
-	{
-		DrawCube(this->position, this->scale, this->scale, this->scale, this->color);
-	}
-};
-
-struct SphereParticle : BaseParticle
-{
-	SphereParticle(float _scale, Vector3 _pos, Color _clr)
-	{
-		this->originalScale = _scale;
-		this->scale = _scale;
-		this->position = _pos;
-		this->color = _clr;
-	}
-
-	BaseParticle* clone() override
-	{
-		return new SphereParticle(*this);
-	}
-
-	void Draw() override
-	{
-		DrawSphere(this->position, this->scale, color);
-	}
-};
-
 // Due to circular dependencies we have to put properties header down here :(
 #include "Properties.h"
 
@@ -122,9 +95,9 @@ struct ParticleEmitter
 {
 	std::vector<BaseParticle*> particles;
 
-	void AddCubeParticle(Vector3 _pos, Color _clr, bool shouldDie = true)
+	void AddParticle(Vector3 _pos, Color _clr, bool shouldDie = true)
 	{
-		CubeParticle* cp = new CubeParticle(0.3f, _pos, _clr);
+		BaseParticle* cp = new BaseParticle(0.3f, _pos, _clr);
 		particles.push_back(cp);
 		cp->idx = particles.size() - 1;
 		cp->shouldDie = shouldDie;
@@ -156,7 +129,7 @@ struct ParticleEmitter
 		int y = GetRandomValue(-1, 1);
 		int z = GetRandomValue(-10, 10);
 
-		AddCubeParticle({ (float)x, (float)y, (float)z }, color, shouldDie);
+		AddParticle({ (float)x, (float)y, (float)z }, color, shouldDie);
 	}
 
 	void SpawnParticles(int amount = 1, bool shoulDie = true)

@@ -21,10 +21,10 @@ struct PropertyBase
 
 struct WaveProperty : PropertyBase
 {
-	Vector3 baseForce = Vector3(0, 0.01, 0);
-	float amplitude = 0.05f;
+	Vector3 baseForce = { 0.0f, 0.01f, 0.0f };
+	float amplitude = 1.5f;
 	float freq = 3.0f;
-	float cap = 1.0f;
+	float cap = 2.0f;
 
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
 	{
@@ -33,10 +33,17 @@ struct WaveProperty : PropertyBase
 
 		float angle = (globalTime * freq) + uniqueSeed;
 
-		Vector3 wave = Vector3(cosf(angle), 0, sinf(angle));
-		pm->force += baseForce + wave;
-		pm->acceleration += Vector3(Clamp(pm->force.x, 0, cap), Clamp(pm->force.y, 0, cap), Clamp(pm->force.z, 0, cap));
-		pm->position += pm->acceleration * GetFrameTime();
+		Vector3 wave = { cosf(angle) * amplitude, 0.0f, sinf(angle) * amplitude };
+
+		pm->force = baseForce + wave;
+
+		pm->acceleration = {
+			Clamp(pm->force.x, -cap, cap),
+			Clamp(pm->force.y, -cap, cap),
+			Clamp(pm->force.z, -cap, cap)
+		};
+
+		pm->position = pm->position + (pm->acceleration * dt);
 	}
 };
 
@@ -53,7 +60,7 @@ struct SingleForceProperty : PropertyBase
 	}
 };
 
-struct ColorChangeProperty : PropertyBase
+struct RandomColorChangeProperty : PropertyBase
 {
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
 	{
@@ -71,18 +78,30 @@ struct ColorStaticProperty : PropertyBase
 	}
 };
 
+struct VelocityColorProperty : PropertyBase
+{
+	Color slowColor = { 50, 255, 255, 255 };
+	Color fastColor = { 50, 255, 255, 255 };
+	float maxSpeed = 15.0f;
+
+	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
+	{
+		float t = Vector3Length(pm->force) / maxSpeed;
+		pm->SetColor(ColorLerp(slowColor, fastColor, t));
+	}
+};
+
 struct VortexProperty : PropertyBase
 {
 	Vector3 center = { 0.0f, 0.0f, 0.0f };
 	Vector3 axis = { 0.0f, 1.0f, 0.0f };
 	float swirlStrength = 15.0f;
 	float pullStrength = 4.0f;
-	float liftStrength = 1.5f;
 	float maxRadius = 20.0f;
 
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
 	{
-		Vector3 toParticle = Vector3Subtract(pm->position, center);
+		Vector3 toParticle = pm->position - center;
 
 		Vector3 radial = { toParticle.x, 0.0f, toParticle.z };
 		float dist = Vector3Length(radial);
@@ -91,19 +110,19 @@ struct VortexProperty : PropertyBase
 		if (dist < 0.001f || dist > maxRadius)
 			return;
 
-		Vector3 radialDir = Vector3Scale(radial, 1.0f / dist);
+		// normalize
+		Vector3 radialDir = radial * (1.0f / dist);
 
 		Vector3 tangentDir = Vector3CrossProduct(axis, radialDir);
 
-		Vector3 swirlForce = Vector3Scale(tangentDir, swirlStrength);
-		Vector3 inwardForce = Vector3Scale(radialDir, -pullStrength);
-		Vector3 liftForce = Vector3Scale(axis, liftStrength);
+		Vector3 swirlForce = tangentDir * swirlStrength;
+		Vector3 inwardForce = radialDir * -pullStrength;
 
-		Vector3 totalForce = Vector3Add(swirlForce, Vector3Add(inwardForce, liftForce));
+		Vector3 totalForce = swirlForce + inwardForce + axis;
 
-		pm->force = Vector3Scale(pm->force, 0.98f);
-		pm->force = Vector3Add(pm->force, Vector3Scale(totalForce, dt));
-		pm->position = Vector3Add(pm->position, Vector3Scale(pm->force, dt));
+		pm->force = pm->force, 0.98f;
+		pm->force = pm->force + totalForce * dt;
+		pm->position = pm->position + pm->force * dt;
 	}
 };
 
@@ -120,6 +139,45 @@ struct FadeoutColorProperty : PropertyBase
 	}
 };
 
+struct DragProperty : PropertyBase
+{
+	float dragCoefficient = 0.96f;
+
+	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
+	{
+		float damping = powf(dragCoefficient, dt * 60.0f);
+		pm->force = pm->force * damping;
+		pm->acceleration = pm->acceleration * damping;
+	}
+};
+
+struct PointAttractorProperty : PropertyBase
+{
+	Vector3 targetPoint = { 0.0f, 1.0f, 0.0f };
+	float strength = 25.0f;
+	float maxRadius = 30.0f;
+	float minRadius = 0.5f;
+
+	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
+	{
+		Vector3 dir = targetPoint - pm->position;
+		float dist = Vector3Length(dir);
+
+		// if we're inside our target bubble
+		if (dist > maxRadius || dist < minRadius)
+			return;
+
+		Vector3 normDir = dir * (1 / maxRadius);
+
+		float falloff = 1.0f - (dist / maxRadius);
+
+		Vector3 pull = normDir * strength * falloff * dt;
+
+		pm->force = pm->force + pull;
+		pm->position = pm->position + pm->force * dt;
+	}
+};
+
 // Inspiration: https://medium.com/better-programming/mastering-flock-simulation-with-boids-c-opengl-and-imgui-5a3ddd9cb958
 struct FlockbehaviorProperty : PropertyBase
 {
@@ -131,7 +189,7 @@ struct FlockbehaviorProperty : PropertyBase
 	const int maxNeighbors = 15;
 	float separationMinDist = 1.2f;
 	float minSpeed = 5.0f;
-	float maxSpeed = 120.0f;
+	float maxSpeed = 25.0f;
 	float maxSteerForce = 18.0f;
 	float cohesionFactor = 0.2f;
 	float alignmentFactor = 0.2f;
@@ -140,20 +198,10 @@ struct FlockbehaviorProperty : PropertyBase
 
 	void UpdateBoid(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles)
 	{
-		if (Vector3LengthSqr(pm->force) < 0.01f)
-		{
-			Vector3 initDir = {
-				GetRandomFloatRange(-1.0f, 1.0f),
-				GetRandomFloatRange(-0.5f, 0.5f),
-				GetRandomFloatRange(-1.0f, 1.0f)
-			};
-			if (Vector3LengthSqr(initDir) < 0.0001f) initDir = { 1.0f, 0.0f, 0.0f };
-			pm->force = Vector3Scale(Vector3Normalize(initDir), minSpeed);
-		}
-
 		Vector3 forward = Vector3Normalize(pm->force);
 
 		int neighborCount = 0;
+
 		Vector3 sumNeighborSpeeds = { 0, 0, 0 };
 		Vector3 sumNeighborPositions = { 0, 0, 0 };
 		Vector3 separationForce = { 0, 0, 0 };
@@ -165,26 +213,26 @@ struct FlockbehaviorProperty : PropertyBase
 			if (other == pm || !other->activated)
 				continue;
 
-			Vector3 toOther = Vector3Subtract(other->position, pm->position);
+			Vector3 toOther = other->position - pm->position;
 			float distSqr = Vector3LengthSqr(toOther);
 
 			if (distSqr < 0.000001f || distSqr > maxDistSqr)
 				continue;
 
 			float dist = sqrtf(distSqr);
-			Vector3 dirToOther = Vector3Scale(toOther, 1.0f / dist);
+			Vector3 dirToOther = toOther / dist;
 
 			if (Vector3DotProduct(forward, dirToOther) < -0.5f)
 				continue;
 
 			neighborCount++;
-			sumNeighborSpeeds = Vector3Add(sumNeighborSpeeds, other->force);
-			sumNeighborPositions = Vector3Add(sumNeighborPositions, other->position);
+			sumNeighborSpeeds += other->force;
+			sumNeighborPositions += other->position;
 
 			if (dist < separationMinDist)
 			{
 				float strength = (separationMinDist - dist) / separationMinDist;
-				separationForce = Vector3Subtract(separationForce, Vector3Scale(dirToOther, strength));
+				separationForce -= dirToOther * strength;
 			}
 
 			if (neighborCount >= maxNeighbors)
@@ -193,51 +241,61 @@ struct FlockbehaviorProperty : PropertyBase
 
 		Vector3 steerForce = { 0, 0, 0 };
 
+		// if current particle has a non zero number of neighboors
 		if (neighborCount > 0)
 		{
 			float invCount = 1.0f / (float)neighborCount;
-			Vector3 avgPos = Vector3Scale(sumNeighborPositions, invCount);
-			Vector3 avgSpeed = Vector3Scale(sumNeighborSpeeds, invCount);
+			Vector3 avgPos = sumNeighborPositions * invCount;
+			Vector3 avgSpeed = sumNeighborSpeeds * invCount;
 
-			Vector3 cohesion = Vector3Scale(Vector3Subtract(avgPos, pm->position), cohesionFactor);
-			Vector3 alignment = Vector3Scale(Vector3Subtract(avgSpeed, pm->force), alignmentFactor);
+			Vector3 cohesion = (avgPos - pm->position) * cohesionFactor;
+			Vector3 alignment = (avgSpeed - pm->force) * alignmentFactor;
 
-			steerForce = Vector3Add(steerForce, cohesion);
-			steerForce = Vector3Add(steerForce, alignment);
+			steerForce += cohesion + alignment;
 		}
 
-		steerForce = Vector3Add(steerForce, Vector3Scale(separationForce, separationFactor));
+		steerForce += separationForce * separationFactor;
 
-		Vector3 targetOffset = Vector3Subtract(target, pm->position);
+		Vector3 targetOffset = target - pm->position;
 		float distToTarget = Vector3Length(targetOffset);
+
+		// if we haven't reached our target yet:
 		if (distToTarget > 0.001f)
 		{
-			Vector3 desiredDir = Vector3Scale(targetOffset, 1.0f / distToTarget);
-			float weight = (distToTarget < 6.0f) ? (distToTarget / 6.0f) * 0.4f : 1.0f;
-			Vector3 desiredVel = Vector3Scale(desiredDir, maxSpeed);
-			Vector3 targetSteer = Vector3Scale(Vector3Subtract(desiredVel, pm->force), targetFactor * weight);
-			steerForce = Vector3Add(steerForce, targetSteer);
+			Vector3 desiredDir = targetOffset / distToTarget;
+
+			float weight;
+
+			if (distToTarget < 6.0f)
+				weight = (distToTarget / 6.0f) * 0.4f;
+			else
+				weight = 1.0f;
+
+			Vector3 desiredVel = desiredDir * maxSpeed;
+			Vector3 targetSteer = (desiredVel - pm->force) * (targetFactor * weight);
+
+			steerForce += targetSteer;
 		}
 
 		float steerMag = Vector3Length(steerForce);
 		if (steerMag > maxSteerForce)
 		{
-			steerForce = Vector3Scale(steerForce, maxSteerForce / steerMag);
+			steerForce *= maxSteerForce / steerMag;
 		}
 
-		pm->force = Vector3Add(pm->force, Vector3Scale(steerForce, dt));
+		pm->force += steerForce * dt;
 
 		float speed = Vector3Length(pm->force);
 		if (speed > maxSpeed)
 		{
-			pm->force = Vector3Scale(pm->force, maxSpeed / speed);
+			pm->force *= maxSpeed / speed;
 		}
 		else if (speed < minSpeed && speed > 0.0001f)
 		{
-			pm->force = Vector3Scale(pm->force, minSpeed / speed);
+			pm->force *= minSpeed / speed;
 		}
 
-		pm->position = Vector3Add(pm->position, Vector3Scale(pm->force, dt));
+		pm->position += pm->force * dt;
 	}
 
 	void MoveTarget()

@@ -16,21 +16,5 @@ struct CameraController
 		cam.projection = CAMERA_PERSPECTIVE;
 	}
 
-	void Freecam()
-	{
-		if (IsKeyDown(KEY_W))
-			cam.position.z += 1.0f;
-		if (IsKeyDown(KEY_S))
-			cam.position.z -= 1.0f;
-		if (IsKeyDown(KEY_A))
-			cam.position.x += 1.0f;
-		if (IsKeyDown(KEY_D))
-			cam.position.x -= 1.0f;
-		if (IsKeyDown(KEY_Q))
-			cam.position.y += 1.0f;
-		if (IsKeyDown(KEY_E))
-			cam.position.y -= 1.0f;
-	}
-
 	Camera cam;
 };
