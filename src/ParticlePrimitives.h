@@ -20,12 +20,11 @@ struct PropertyBase;
 struct BaseParticle
 {
 
-	BaseParticle(float _scale, Vector3 _pos, Color _clr)
+	BaseParticle(float _scale, Vector3 _pos)
 	{
 		this->originalScale = _scale;
 		this->scale = _scale;
 		this->position = _pos;
-		this->color = _clr;
 	}
 
 	BaseParticle* clone()
@@ -67,12 +66,12 @@ struct BaseParticle
 
 	void ResetParticle()
 	{
-		//force = { 0, 0, 0 };
 		scale = originalScale;
 	}
 	
 	std::vector<PropertyBase*> properties;
 
+	Vector3 startingPos = { 0, 0, 0 };
 	Vector3 position = {0, 0, 0};
 	Vector3 force = {0, 0, 0};
 	Vector3 acceleration = {0, 0, 0};
@@ -95,13 +94,14 @@ struct ParticleEmitter
 {
 	std::vector<BaseParticle*> particles;
 
-	void AddParticle(Vector3 _pos, Color _clr, bool shouldDie = true)
+	void AddParticle(Vector3 _pos, bool shouldDie, Vector3 modelPos)
 	{
-		BaseParticle* cp = new BaseParticle(0.3f, _pos, _clr);
+		BaseParticle* cp = new BaseParticle(0.1f, modelPos);
 		particles.push_back(cp);
 		cp->idx = particles.size() - 1;
 		cp->shouldDie = shouldDie;
 		cp->activated = true;
+		cp->startingPos = modelPos;
 	}
 
 	void RenderAllParticles()
@@ -118,20 +118,25 @@ struct ParticleEmitter
 		}
 	}
 
-	void SpawnParticle(bool shouldDie = true, Color color = {200, 0, 0, 0})
+	void SpawnParticle(bool shouldDie, Vector3 modelPos)
 	{
 		int x = GetRandomValue(-10, 10);
 		int y = GetRandomValue(-1, 1);
 		int z = GetRandomValue(-10, 10);
 
-		AddParticle({ (float)x, (float)y, (float)z }, color, shouldDie);
+		AddParticle(Vector3((float)x, (float)y, (float)z), shouldDie, modelPos);
 	}
 
-	void SpawnParticles(int amount = 1, bool shoulDie = true)
+	void SpawnParticles(int amount, bool shoulDie, std::vector<float> vertexPositions)
 	{
 		for (int i = 0; i < amount; i++)
 		{
-			SpawnParticle(shoulDie);
+			Vector3 pos = {
+				vertexPositions[i * 3],
+				vertexPositions[i * 3 + 1],
+				vertexPositions[i * 3 + 2]
+			};
+			SpawnParticle(shoulDie, pos);
 		}
 	}
 
@@ -176,11 +181,13 @@ struct ParticleEmitter
 		for (int i = 0; i < particlesToSpawn; ++i)
 		{
 			BaseParticle* front = tempHolder.front();
-			this->SpawnParticle(front->shouldDie, front->color);
+			this->SpawnParticle(front->shouldDie, front->startingPos);
 
 			auto particle = this->particles[this->particles.size() - 1];
 			particle->activated = true;
 			particle->SetLifeTime(GetRandomFloatRange(1.0f, 2.0f));
+
+			particle->color = front->color;
 
 			for (auto& property : front->properties)
 			{

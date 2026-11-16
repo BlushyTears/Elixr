@@ -49,7 +49,7 @@ struct WaveProperty : PropertyBase
 
 struct SingleForceProperty : PropertyBase
 {
-	Vector3 baseForce = Vector3(0, 0.1, 0);
+	Vector3 baseForce = Vector3(0, 0.001, 0);
 	float cap = 1.0f;
 
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
@@ -64,7 +64,7 @@ struct RandomColorChangeProperty : PropertyBase
 {
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
 	{
-		pm->SetColor(Color(GetRandomValue(0, 0), GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255)));
+		pm->SetColor(Color(GetRandomValue(100, 0), GetRandomValue(0, 255), GetRandomValue(50, 100), GetRandomValue(50, 100)));
 	}
 };
 
@@ -181,7 +181,7 @@ struct PointAttractorProperty : PropertyBase
 // Inspiration: https://medium.com/better-programming/mastering-flock-simulation-with-boids-c-opengl-and-imgui-5a3ddd9cb958
 struct FlockbehaviorProperty : PropertyBase
 {
-	Vector3 target = { 0, 0, 0 };
+	Vector3 globalTarget = { 0, 0, 0 };
 	float updateTimer = 5.0f;
 	float currentTimer = updateTimer;
 
@@ -255,8 +255,8 @@ struct FlockbehaviorProperty : PropertyBase
 		}
 
 		steerForce += separationForce * separationFactor;
+		Vector3 targetOffset = globalTarget - pm->position;
 
-		Vector3 targetOffset = target - pm->position;
 		float distToTarget = Vector3Length(targetOffset);
 
 		// if we haven't reached our target yet:
@@ -300,9 +300,9 @@ struct FlockbehaviorProperty : PropertyBase
 
 	void MoveTarget()
 	{
-		target.x = GetRandomFloatRange(-20, 20);
-		target.y = GetRandomFloatRange(-8, 12);
-		target.z = GetRandomFloatRange(-20, 20);
+		globalTarget.x = GetRandomFloatRange(-20, 20);
+		globalTarget.y = GetRandomFloatRange(-8, 12);
+		globalTarget.z = GetRandomFloatRange(-20, 20);
 	}
 
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
@@ -311,7 +311,7 @@ struct FlockbehaviorProperty : PropertyBase
 
 		if (pm->idx == 0)
 		{
-			DrawSphere(target, 1.0f, PURPLE);
+			DrawSphere(globalTarget, 1.0f, PURPLE);
 			currentTimer -= dt;
 			if (currentTimer <= 0)
 			{

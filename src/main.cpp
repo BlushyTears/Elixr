@@ -29,20 +29,43 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 CameraController camera;
 ParticleEmitter pe;
 
+void PlayIdleAnimation(Model& model, ModelAnimation* anims, int& animCount)
+{
+	static unsigned int animIndex = 0;
+	static unsigned int animCurrentFrame = 0;
+
+	animCurrentFrame = (animCurrentFrame + 1) % anims[animIndex].keyframeCount;
+	UpdateModelAnimation(model, anims[animIndex], (float)animCurrentFrame);
+}
+
 int main ()
 {
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
 
 	InitWindow(800, 600, "Hello Raylib");
 	SearchAndSetResourceDir("resources");
-	Model model = LoadModel("Knight.glb");
+	Model model = LoadModel("Idle.glb");
+
+	std::vector<float> vertexPositions;
+	const int modelCount = model.meshCount;
+	float modelScale = 3.0f;
+
+	for (int i = 0; i < modelCount; i++)
+	{
+		int floatCount = model.meshes[i].vertexCount * 3;
+
+		for (int j = 0; j < floatCount; j++)
+		{
+			vertexPositions.push_back(model.meshes[i].vertices[j] * modelScale);
+		}
+	}
 
 	float pitch = 0.0f;
 	float yaw = 0.0f;
 	float roll = 0.0f;
 
-	const int ParticlesToSpawn = 1000;
-	pe.SpawnParticles(ParticlesToSpawn, false);
+	const int ParticlesToSpawn = vertexPositions.size() / 3;
+	pe.SpawnParticles(ParticlesToSpawn, true, vertexPositions);
 
 	SingleForceProperty upforceProperty;
 	WaveProperty waveProperty;
@@ -53,16 +76,21 @@ int main ()
 	VortexProperty vp;
 	PointAttractorProperty pap;
 
+	std::cout << "" << std::endl;
+
 	for (int i = 0; i < ParticlesToSpawn; i++)
 	{
 		pe.particles[i]->SetLifeTime(GetRandomFloatRange(1.0, 5.0));
-		//pe.particles[i]->AttatchProperty(&upforceProperty);
+		if (i % 30 == 0)
+		{
+			pe.particles[i]->AttatchProperty(&upforceProperty);
+			pe.particles[i]->AttatchProperty(&ccp);
+			//pe.particles[i]->AttatchProperty(&vp);
+		}
 		//pe.particles[i]->AttatchProperty(&waveProperty);
-		//pe.particles[i]->AttatchProperty(&ccp);
-		pe.particles[i]->AttatchProperty(&csp);
+		//pe.particles[i]->AttatchProperty(&csp);
 		//pe.particles[i]->AttatchProperty(&fcp);
-		pe.particles[i]->AttatchProperty(&fbp);
-		pe.particles[i]->AttatchProperty(&vp);
+		//pe.particles[i]->AttatchProperty(&vp);
 		//pe.particles[i]->AttatchProperty(&pap);
 	}
 
@@ -84,8 +112,15 @@ int main ()
 		model.materials[i].shader = shader;
 	}
 
+	int animCount = 0;
+	ModelAnimation* anims = LoadModelAnimations("Idle.glb", &animCount);
+
+	std::cout << " ANIM COUNTR " << animCount;
+
 	while (!WindowShouldClose())
 	{
+		//PlayIdleAnimation(model, anims, animCount);
+
 		if (IsKeyPressed(KEY_B)) { lights[0].enabled = !lights[0].enabled; }
 		if (IsKeyPressed(KEY_R)) { lights[1].enabled = !lights[1].enabled; }
 
@@ -116,8 +151,8 @@ int main ()
 			else DrawSphereWires(lights[i].position, 0.8f, 8, 8, ColorAlpha(lights[i].color, 0.3f));
 		}
 
-		DrawModel(model, { 0, 2, 0 }, 1.0f, GRAY);
-		DrawModel(plane, { 0, -5, 0 }, 1.0f, GRAY);
+		DrawModel(model, { 5, 1, 0 }, 1.0f, GRAY);
+		DrawModel(plane, { 0, -2, 0 }, 1.0f, GRAY);
 
 		pe.ManageParticles();
 		pe.RenderAllParticles();
