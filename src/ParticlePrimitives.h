@@ -85,6 +85,7 @@ struct BaseParticle
 	float originalScale = 2;
 	float scale = 1;
 	int idx = 0;
+	int vertexIdx = 0;
 };
 
 // Due to circular dependencies we have to put properties header down here :(
@@ -96,7 +97,7 @@ struct ParticleEmitter
 
 	void AddParticle(Vector3 _pos, bool shouldDie, Vector3 modelPos)
 	{
-		BaseParticle* cp = new BaseParticle(0.1f, modelPos);
+		BaseParticle* cp = new BaseParticle(0.015f, modelPos);
 		particles.push_back(cp);
 		cp->idx = particles.size() - 1;
 		cp->shouldDie = shouldDie;
@@ -137,6 +138,7 @@ struct ParticleEmitter
 				vertexPositions[i * 3 + 2]
 			};
 			SpawnParticle(shoulDie, pos);
+			particles.back()->vertexIdx = i;
 		}
 	}
 
@@ -185,7 +187,10 @@ struct ParticleEmitter
 
 			auto particle = this->particles[this->particles.size() - 1];
 			particle->activated = true;
-			particle->SetLifeTime(GetRandomFloatRange(1.0f, 2.0f));
+
+			particle->SetLifeTime(front->startingLifeTime);
+
+			particle->vertexIdx = front->vertexIdx;
 
 			particle->color = front->color;
 

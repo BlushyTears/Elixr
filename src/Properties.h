@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "raylib.h"
 
 #include "raymath.h"
@@ -49,7 +48,7 @@ struct WaveProperty : PropertyBase
 
 struct SingleForceProperty : PropertyBase
 {
-	Vector3 baseForce = Vector3(0, 0.001, 0);
+	Vector3 baseForce = Vector3(0, 0.01, 0);
 	float cap = 1.0f;
 
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
@@ -62,9 +61,16 @@ struct SingleForceProperty : PropertyBase
 
 struct RandomColorChangeProperty : PropertyBase
 {
+	// To do: replace datastructures like this with domain specific ones to reduce potential confusion
+	Vector4 minColor = { 0, 0, 0, 100 };
+	Vector4 maxColor = { 255, 255, 255, 255 };
+
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
 	{
-		pm->SetColor(Color(GetRandomValue(100, 0), GetRandomValue(0, 255), GetRandomValue(50, 100), GetRandomValue(50, 100)));
+		pm->SetColor(Color(GetRandomValue(minColor.x, maxColor.x),
+			GetRandomValue(minColor.y, maxColor.y),
+			GetRandomValue(minColor.z, maxColor.z),
+			GetRandomValue(minColor.w, maxColor.w)));
 	}
 };
 
@@ -95,9 +101,9 @@ struct VortexProperty : PropertyBase
 {
 	Vector3 center = { 0.0f, 0.0f, 0.0f };
 	Vector3 axis = { 0.0f, 1.0f, 0.0f };
-	float swirlStrength = 15.0f;
-	float pullStrength = 4.0f;
-	float maxRadius = 20.0f;
+	float swirlStrength = 0.010f;
+	float pullStrength = 0.4f;
+	float maxRadius = 1.0f;
 
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
 	{
@@ -134,7 +140,7 @@ struct FadeoutColorProperty : PropertyBase
 
 		pm->SetColor(Color(pm->color.r, pm->color.g, pm->color.b, GetRandomValue(1, 255 * alpha)));
 
-		if (pm->lifeTime <= 0.3f)
+		if (pm->lifeTime <= 0.2f)
 			pm->scale -= 0.0001f;
 	}
 };
@@ -153,10 +159,10 @@ struct DragProperty : PropertyBase
 
 struct PointAttractorProperty : PropertyBase
 {
-	Vector3 targetPoint = { 0.0f, 1.0f, 0.0f };
-	float strength = 25.0f;
-	float maxRadius = 30.0f;
-	float minRadius = 0.5f;
+	Vector3 targetPoint = { 0.0f, 10.0f, 0.0f };
+	float strength = 15.0f;
+	float maxRadius = 5.0f;
+	float minRadius = 1.5f;
 
 	void Update(BaseParticle* pm, float dt, std::vector<BaseParticle*>& particles) override
 	{

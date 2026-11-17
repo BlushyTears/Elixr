@@ -1,13 +1,4 @@
-﻿/*
-Raylib example file.
-This is an example main file for a simple raylib project.
-Use this as a starting point or replace it with your code.
-
-by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit https://creativecommons.org/publicdomain/zero/1.0/
-
-*/
-
-#include <iostream>
+﻿#include <iostream>
 
 #include "raylib.h"
 #include "raymath.h"
@@ -26,39 +17,25 @@ by Jeffery Myers is marked with CC0 1.0. To view a copy of this license, visit h
 #define GLSL_VERSION            100
 #endif
 
+#include "ElixrUtil.h"
+
 CameraController camera;
 ParticleEmitter pe;
-
-void PlayIdleAnimation(Model& model, ModelAnimation* anims, int& animCount)
-{
-	static unsigned int animIndex = 0;
-	static unsigned int animCurrentFrame = 0;
-
-	animCurrentFrame = (animCurrentFrame + 1) % anims[animIndex].keyframeCount;
-	UpdateModelAnimation(model, anims[animIndex], (float)animCurrentFrame);
-}
 
 int main ()
 {
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
 
+	std::string KnightModel = "robot.glb";
 	InitWindow(800, 600, "Hello Raylib");
 	SearchAndSetResourceDir("resources");
-	Model model = LoadModel("Idle.glb");
+	Model model = LoadModel(KnightModel.c_str());
 
 	std::vector<float> vertexPositions;
 	const int modelCount = model.meshCount;
-	float modelScale = 3.0f;
+	float modelScale = 1.5f;
 
-	for (int i = 0; i < modelCount; i++)
-	{
-		int floatCount = model.meshes[i].vertexCount * 3;
-
-		for (int j = 0; j < floatCount; j++)
-		{
-			vertexPositions.push_back(model.meshes[i].vertices[j] * modelScale);
-		}
-	}
+	SetParticlePositions(modelCount, modelScale, model, vertexPositions);
 
 	float pitch = 0.0f;
 	float yaw = 0.0f;
@@ -70,29 +47,62 @@ int main ()
 	SingleForceProperty upforceProperty;
 	WaveProperty waveProperty;
 	RandomColorChangeProperty ccp;
+
+	ccp.minColor.x = 200;
+	ccp.minColor.y = 0;
+	ccp.minColor.z = 0;
+
+	ccp.maxColor.x = 255;
+	ccp.maxColor.y = 50;
+	ccp.maxColor.z = 50;
+
+	RandomColorChangeProperty baseColorRandom;
+
+	baseColorRandom.minColor.x = 0;
+	baseColorRandom.minColor.y = 0;
+	baseColorRandom.minColor.z = 0;
+
+	baseColorRandom.maxColor.x = 255;
+	baseColorRandom.maxColor.y = 60;
+	baseColorRandom.maxColor.z = 80;
+
 	ColorStaticProperty csp;
 	FadeoutColorProperty fcp;
 	FlockbehaviorProperty fbp;
 	VortexProperty vp;
 	PointAttractorProperty pap;
 
-	std::cout << "" << std::endl;
-
 	for (int i = 0; i < ParticlesToSpawn; i++)
 	{
-		pe.particles[i]->SetLifeTime(GetRandomFloatRange(1.0, 5.0));
-		if (i % 30 == 0)
+		pe.particles[i]->SetLifeTime(GetRandomFloatRange(0.05, 0.15));
+		pe.particles[i]->AttatchProperty(&baseColorRandom);
+
+		if (i % 15 == 0)
+		{
+			pe.particles[i]->scale = modelScale * 10;
+			pe.particles[i]->SetLifeTime(GetRandomFloatRange(0.6, 1.2));
+			pe.particles[i]->AttatchProperty(&ccp);
+			pe.particles[i]->AttatchProperty(&waveProperty);
+			pe.particles[i]->AttatchProperty(&fcp);
+
+		}
+		if (i % 4 == 0)
 		{
 			pe.particles[i]->AttatchProperty(&upforceProperty);
-			pe.particles[i]->AttatchProperty(&ccp);
-			//pe.particles[i]->AttatchProperty(&vp);
+			pe.particles[i]->AttatchProperty(&vp);
 		}
-		//pe.particles[i]->AttatchProperty(&waveProperty);
-		//pe.particles[i]->AttatchProperty(&csp);
-		//pe.particles[i]->AttatchProperty(&fcp);
+		if (i % 64 == 0)
+		{
+			pe.particles[i]->AttatchProperty(&csp);
+			pe.particles[i]->AttatchProperty(&fcp);
+		}
+
+		pe.particles[i]->AttatchProperty(&pap);
 		//pe.particles[i]->AttatchProperty(&vp);
 		//pe.particles[i]->AttatchProperty(&pap);
 	}
+
+	SetTargetFPS(30);
 
 	Shader shader = LoadShader("../lighting.vs", "../lighting.fs");
 
@@ -100,9 +110,10 @@ int main ()
 
 	int ambientLoc = GetShaderLocation(shader, "ambient");
 
-	Light lights[2] = { 0 };
-	lights[0] = CreateLight(LIGHT_POINT, Vector3{ -2, 1, -2 }, Vector3Zero(), BLUE, shader);
-	lights[1] = CreateLight(LIGHT_POINT, Vector3{ 2, 1, 2 }, Vector3Zero(), RED, shader);
+	Light lights[3] = { 0 };
+	lights[0] = CreateLight(LIGHT_POINT, Vector3{ -8, 1, -8 }, Vector3Zero(), BLUE, shader);
+	lights[1] = CreateLight(LIGHT_POINT, Vector3{ 3, 1, 6 }, Vector3Zero(), RED, shader);
+	lights[2] = CreateLight(LIGHT_POINT, Vector3{ 8, 1, -8 }, Vector3Zero(), YELLOW, shader);
 
 	Model plane = LoadModelFromMesh(GenMeshPlane(20.0f, 20.0f, 1, 1));
 	plane.materials[0].shader = shader;
@@ -113,19 +124,38 @@ int main ()
 	}
 
 	int animCount = 0;
-	ModelAnimation* anims = LoadModelAnimations("Idle.glb", &animCount);
-
-	std::cout << " ANIM COUNTR " << animCount;
+	ModelAnimation* anims = LoadModelAnimations(KnightModel.c_str(), &animCount);
 
 	while (!WindowShouldClose())
 	{
-		//PlayIdleAnimation(model, anims, animCount);
+		PlayIdleAnimation(model, anims, animCount);
+		SetParticlePositions(modelCount, modelScale, model, vertexPositions);
+
+		for (auto* p : pe.particles)
+		{
+			int v = p->vertexIdx * 3;
+			if (v + 2 < (int)vertexPositions.size())
+			{
+				Vector3 animPos = {
+					vertexPositions[v],
+					vertexPositions[v + 1],
+					vertexPositions[v + 2]
+				};
+				p->startingPos = animPos;
+
+				if (p->properties.empty())
+				{
+					p->position = animPos;
+				}
+			}
+		}
 
 		if (IsKeyPressed(KEY_B)) { lights[0].enabled = !lights[0].enabled; }
 		if (IsKeyPressed(KEY_R)) { lights[1].enabled = !lights[1].enabled; }
+		if (IsKeyPressed(KEY_Y)) { lights[2].enabled = !lights[2].enabled; }
 
 		// Update light values (actually, only enable/disable them)
-		for (int i = 0; i < 2; i++) 
+		for (int i = 0; i < 3; i++) 
 			UpdateLightValues(shader, lights[i]);
 
 		UpdateCamera(&camera.cam, CAMERA_FREE);
@@ -138,21 +168,22 @@ int main ()
 
 		Vector3 angle = { DEG2RAD * pitch, DEG2RAD * yaw, DEG2RAD * roll };
 
-		model.transform = MatrixMultiply(MatrixRotateXYZ(angle), MatrixScale(3, 3, 3));
-
 		BeginDrawing();
 		ClearBackground(BLACK);
 
 		BeginMode3D(camera.cam);
 
-		for (int i = 0; i < 2; i++)
-		{
-			if (lights[i].enabled) DrawSphereEx(lights[i].position, 0.2f, 8, 8, lights[i].color);
-			else DrawSphereWires(lights[i].position, 0.8f, 8, 8, ColorAlpha(lights[i].color, 0.3f));
-		}
+		// Exists for debugging purposes
+		//DrawModelSkeleton(model.skeleton, model.currentPose, 1.0f, GREEN);
 
-		DrawModel(model, { 5, 1, 0 }, 1.0f, GRAY);
-		DrawModel(plane, { 0, -2, 0 }, 1.0f, GRAY);
+		//for (int i = 0; i < 2; i++)
+		//{
+		//	if (lights[i].enabled) DrawSphereEx(lights[i].position, 0.2f, 8, 8, lights[i].color);
+		//	else DrawSphereWires(lights[i].position, 0.8f, 8, 8, ColorAlpha(lights[i].color, 0.3f));
+		//}
+
+		//DrawModel(model, { 0, 0, 0 }, 1.0f, BLACK);
+		DrawModel(plane, { 0, -1, 0 }, 1.0f, GRAY);
 
 		pe.ManageParticles();
 		pe.RenderAllParticles();
