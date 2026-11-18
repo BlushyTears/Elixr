@@ -101,7 +101,7 @@ struct VortexProperty : PropertyBase
 {
 	Vector3 center = { 0.0f, 0.0f, 0.0f };
 	Vector3 axis = { 0.0f, 1.0f, 0.0f };
-	float swirlStrength = 0.010f;
+	float swirlStrength = 0.10f;
 	float pullStrength = 0.4f;
 	float maxRadius = 1.0f;
 
@@ -140,7 +140,7 @@ struct FadeoutColorProperty : PropertyBase
 
 		pm->SetColor(Color(pm->color.r, pm->color.g, pm->color.b, GetRandomValue(1, 255 * alpha)));
 
-		if (pm->lifeTime <= 0.2f)
+		if (pm->lifeTime <= 0.3f)
 			pm->scale -= 0.0001f;
 	}
 };

@@ -64,10 +64,25 @@ inline void AddEdgePoints(Vector3 start, Vector3 end, int steps, std::vector<flo
 	}
 }
 
-inline void SetParticlePositions(int modelCount, float modelScale, const Model& model, std::vector<float>& vertexPositions)
+inline void UpdateEdgePoints(Vector3 start, Vector3 end, int steps, std::vector<float>& outPositions, int& idx)
 {
-	vertexPositions.clear();
+	for (int i = 0; i < steps; i++)
+	{
+		float t = (float)i / (float)steps;
+		Vector3 point = Vector3Lerp(start, end, t);
+
+		outPositions[idx++] = point.x;
+		outPositions[idx++] = point.y;
+		outPositions[idx++] = point.z;
+	}
+}
+
+inline void SetParticlePositions(int modelCount, float modelScale, const Model& model,
+	std::vector<float>& vertexPositions)
+{
+	bool firstTime = vertexPositions.empty();
 	const int steps = 4;
+	int idx = 0;
 
 	for (int m = 0; m < modelCount; m++)
 	{
@@ -85,9 +100,19 @@ inline void SetParticlePositions(int modelCount, float modelScale, const Model& 
 			Vector3 b = GetScaledVertex(verts, i1, modelScale);
 			Vector3 c = GetScaledVertex(verts, i2, modelScale);
 
-			AddEdgePoints(a, b, steps, vertexPositions);
-			AddEdgePoints(b, c, steps, vertexPositions);
-			AddEdgePoints(c, a, steps, vertexPositions);
+			if (firstTime)
+			{
+				AddEdgePoints(a, b, steps, vertexPositions);
+				AddEdgePoints(b, c, steps, vertexPositions);
+				AddEdgePoints(c, a, steps, vertexPositions);
+			}
+			else
+			{
+				UpdateEdgePoints(a, b, steps, vertexPositions, idx);
+				UpdateEdgePoints(b, c, steps, vertexPositions, idx);
+				UpdateEdgePoints(c, a, steps, vertexPositions, idx);
+			}
 		}
 	}
 }
+

@@ -74,7 +74,7 @@ int main ()
 
 	for (int i = 0; i < ParticlesToSpawn; i++)
 	{
-		pe.particles[i]->SetLifeTime(GetRandomFloatRange(0.05, 0.15));
+		pe.particles[i]->SetLifeTime(GetRandomFloatRange(0.55, 0.67));
 		pe.particles[i]->AttatchProperty(&baseColorRandom);
 
 		if (i % 15 == 0)
@@ -97,7 +97,7 @@ int main ()
 			pe.particles[i]->AttatchProperty(&fcp);
 		}
 
-		pe.particles[i]->AttatchProperty(&pap);
+		//pe.particles[i]->AttatchProperty(&pap);
 		//pe.particles[i]->AttatchProperty(&vp);
 		//pe.particles[i]->AttatchProperty(&pap);
 	}
@@ -130,6 +130,28 @@ int main ()
 	{
 		PlayIdleAnimation(model, anims, animCount);
 		SetParticlePositions(modelCount, modelScale, model, vertexPositions);
+
+		int gamepad = 0;
+
+		// temporary vibe coded code for testing if controller input works
+		for (int i = 0; i < 4; i++) {
+			if (IsGamepadAvailable(i)) {
+				for (int button = 0; button < 32; button++) {
+					if (IsGamepadButtonPressed(i, button)) {
+						printf("Slot %d (%s) -> Button: %d\n", i, GetGamepadName(i), button);
+						fflush(stdout);
+					}
+				}
+
+				for (int axis = 0; axis < 4; axis++) {
+					float val = GetGamepadAxisMovement(i, axis);
+					if (val > 0.3f || val < -0.3f) {
+						printf("Slot %d -> Stick Axis %d: %.2f\n", i, axis, val);
+						fflush(stdout);
+					}
+				}
+			}
+		}
 
 		for (auto* p : pe.particles)
 		{
@@ -164,7 +186,7 @@ int main ()
 		float cameraPos[3] = { camera.cam.position.x, camera.cam.position.y, camera.cam.position.z };
 		SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
 
-		DisableCursor();
+		//DisableCursor();
 
 		Vector3 angle = { DEG2RAD * pitch, DEG2RAD * yaw, DEG2RAD * roll };
 
@@ -176,13 +198,14 @@ int main ()
 		// Exists for debugging purposes
 		//DrawModelSkeleton(model.skeleton, model.currentPose, 1.0f, GREEN);
 
+		// draw debug lights
 		//for (int i = 0; i < 2; i++)
 		//{
 		//	if (lights[i].enabled) DrawSphereEx(lights[i].position, 0.2f, 8, 8, lights[i].color);
 		//	else DrawSphereWires(lights[i].position, 0.8f, 8, 8, ColorAlpha(lights[i].color, 0.3f));
 		//}
 
-		//DrawModel(model, { 0, 0, 0 }, 1.0f, BLACK);
+		//DrawModel(model, { 0, 0, 0 }, 1.55f, BLACK);
 		DrawModel(plane, { 0, -1, 0 }, 1.0f, GRAY);
 
 		pe.ManageParticles();
