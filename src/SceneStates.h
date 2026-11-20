@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <string>
 
 #include "raylib.h"
 #include "raymath.h"
@@ -26,6 +27,14 @@
 
 CameraController camera;
 ParticleEmitter pe;
+
+enum State
+{
+	MenuState,
+	SelectParticleState,
+	BlueprintState,
+	DisplayParticleState
+};
 
 struct SampleScene
 {
@@ -89,7 +98,7 @@ struct SampleScene
 
 		for (int i = 0; i < ParticlesToSpawn; i++)
 		{
-			pe.particles[i]->SetLifeTime(GetRandomFloatRange(0.55, 0.67));
+			pe.particles[i]->SetLifeTime(GetRandomFloatRange(0.35, 0.47));
 			pe.particles[i]->AttatchProperty(&baseColorRandom);
 
 			if (i % 15 == 0)
@@ -140,7 +149,7 @@ struct SampleScene
 		anims = LoadModelAnimations(KnightModel.c_str(), &animCount);
 	}
 
-	void DisplaySampleScene()
+	void DisplaySampleScene(State& msms)
 	{
 		ClearBackground(BLACK);
 
@@ -201,7 +210,16 @@ struct SampleScene
 		float cameraPos[3] = { camera.cam.position.x, camera.cam.position.y, camera.cam.position.z };
 		SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
 
-		DisableCursor();
+		if (IsMouseButtonDown(MouseButton::MOUSE_BUTTON_RIGHT))
+		{
+			HideCursor();
+			DisableCursor();
+		}
+		else
+		{
+			ShowCursor();
+			EnableCursor();
+		}
 
 		Vector3 angle = { DEG2RAD * pitch, DEG2RAD * yaw, DEG2RAD * roll };
 
@@ -252,8 +270,10 @@ struct SampleScene
 		screenHeight = 600;
 	}
 
-	void GuiFloatBox(int width, int height, int sizeX, int sizeY, const char* text)
+	bool GuiFloatBox(int width, int height, int sizeX, int sizeY, const char* text)
 	{
+		bool isPressed = false;
+
 		Rectangle bounds = Rectangle((width - sizeX) / 2.0f, (height - sizeY) / 2.0f, (float)sizeX, (float)sizeY);
 		GuiState state = STATE_NORMAL;
 
@@ -265,7 +285,9 @@ struct SampleScene
 			{
 				state = STATE_FOCUSED;
 				if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-					std::cout << "Press button";
+				{
+					isPressed = true;
+				}
 			}
 		}
 
@@ -279,9 +301,11 @@ struct SampleScene
 			GuiDrawText(text, bounds, TEXT_ALIGN_CENTER,
 				Fade(GetColor(GuiGetStyle(LABEL, TEXT + (state * 3))), guiAlpha));
 		}
+
+		return isPressed;
 	}
 
-	void MenuScene()
+	void MenuScene(State& msms)
 	{
 		BeginDrawing();
 
@@ -292,11 +316,44 @@ struct SampleScene
 		windowPosition.x += (mousePosition.x - panOffset.x);
 		windowPosition.y += (mousePosition.y - panOffset.y);
 
-		SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
+		bool createNew = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 20, 150, 50, "Create new");
+		if (createNew)
+			msms = State::DisplayParticleState;
 
-		GuiFloatBox(250, 250, 100, 50, "Text");
+		bool openExisting = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 150, 150, 50, "Open existing");
+		if (openExisting)
+			msms = State::SelectParticleState;
 
-		//GuiFloatBox(Rectangle(250, 250, 50, 50), "");
+		bool exit = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 280, 150, 50, "Exit");
+		if(exit)
+			CloseWindow();
+
+		EndDrawing();
+	}
+
+	void ParticlePicker(State& msms)
+	{
+		BeginDrawing();
+
+		ClearBackground(BLACK);
+
+		ShowCursor();
+
+		windowPosition.x += (mousePosition.x - panOffset.x);
+		windowPosition.y += (mousePosition.y - panOffset.y);
+
+		// temp
+		bool pressedAny = false;
+		for (int i = 1; i <= 3; i++)
+		{
+			for (int j = 1; j <= 3; j++)
+			{
+				std::string text = "Particle: " + std::to_string(i * j);
+				pressedAny = GuiFloatBox(screenWidth / 4 + (i * 220), screenHeight / 4 + (j * 120), 100, 50, text.c_str());
+				if(pressedAny)
+					msms = State::DisplayParticleState;
+			}
+		}
 
 		EndDrawing();
 	}

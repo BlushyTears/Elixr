@@ -25,12 +25,7 @@
 // When in a particle scene you freecam fly with left joycon and rotate with right joycon
 // In menu state only right joycon is used for cursor
 
-enum State 
-{
-	MenuState,
-	BlueprintState,
-	ParticleState
-};
+
 
 SampleScene ss;
 
@@ -52,19 +47,24 @@ int main()
 	while (!WindowShouldClose())
 	{
 		if (IsKeyPressed(KEY_ONE)) { msms = MenuState; }
-		if (IsKeyPressed(KEY_TWO)) { msms = BlueprintState; }
-		if (IsKeyPressed(KEY_THREE)) { msms = ParticleState; }
+		if (IsKeyPressed(KEY_TWO)) { msms = SelectParticleState; }
+		if (IsKeyPressed(KEY_THREE)) { msms = BlueprintState; }
+		if (IsKeyPressed(KEY_FOUR)) { msms = DisplayParticleState; }
 
 		switch(msms)
 		{
-		case MenuState:
-			ss.MenuScene();
-			break;
-		case BlueprintState:
-			break;
-		case ParticleState:
-			ss.DisplaySampleScene();
-			break;
+			case MenuState:
+				ss.MenuScene(msms);
+				break;
+			case SelectParticleState:
+				ss.ParticlePicker(msms);
+				break;
+			case BlueprintState:
+				ss.DisplaySampleScene(msms);
+				break;
+			case DisplayParticleState:
+				ss.DisplaySampleScene(msms);
+				break;
 		}
 	}
 
