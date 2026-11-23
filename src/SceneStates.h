@@ -28,10 +28,25 @@
 CameraController camera;
 ParticleEmitter pe;
 
+struct EmitterBlueprint
+{
+	Vector2 position;
+	// is mouse/joycon holding this, and if so we wanna be able to drag it
+	bool isHeld = false;
+	ParticleEmitter* emitterReference = nullptr;
+
+};
+
+struct PropertyBlueprint
+{
+	
+};
+
 enum State
 {
 	MenuState,
 	SelectParticleState,
+	BuildParticleState,
 	BlueprintState,
 	DisplayParticleState
 };
@@ -108,7 +123,6 @@ struct SampleScene
 				pe.particles[i]->AttatchProperty(&ccp);
 				pe.particles[i]->AttatchProperty(&waveProperty);
 				pe.particles[i]->AttatchProperty(&fcp);
-
 			}
 			if (i % 4 == 0)
 			{
@@ -132,7 +146,6 @@ struct SampleScene
 
 		int ambientLoc = GetShaderLocation(shader, "ambient");
 
-		lights[3] = { 0 };
 		lights[0] = CreateLight(LIGHT_POINT, Vector3{ -8, 1, -8 }, Vector3Zero(), BLUE, shader);
 		lights[1] = CreateLight(LIGHT_POINT, Vector3{ 3, 1, 6 }, Vector3Zero(), RED, shader);
 		lights[2] = CreateLight(LIGHT_POINT, Vector3{ 8, 1, -8 }, Vector3Zero(), YELLOW, shader);
@@ -204,24 +217,9 @@ struct SampleScene
 		for (int i = 0; i < 3; i++)
 			UpdateLightValues(shader, lights[i]);
 
-		UpdateCamera(&camera.cam, CAMERA_FREE);
-
 		// needed for specular lighting
 		float cameraPos[3] = { camera.cam.position.x, camera.cam.position.y, camera.cam.position.z };
 		SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
-
-		if (IsMouseButtonDown(MouseButton::MOUSE_BUTTON_RIGHT))
-		{
-			HideCursor();
-			DisableCursor();
-		}
-		else
-		{
-			ShowCursor();
-			EnableCursor();
-		}
-
-		Vector3 angle = { DEG2RAD * pitch, DEG2RAD * yaw, DEG2RAD * roll };
 
 		BeginDrawing();
 
@@ -245,6 +243,24 @@ struct SampleScene
 
 		DrawGrid(10, 10.0f);
 		EndMode3D();
+
+		if (IsMouseButtonDown(MouseButton::MOUSE_BUTTON_RIGHT))
+		{
+			HideCursor();
+			UpdateCamera(&camera.cam, CAMERA_FREE);
+		}
+		else
+			ShowCursor();
+
+		bool exit = GuiFloatBox(screenWidth / 4, screenHeight * 1.7 + 10, 150, 50, "<- Back");
+		if (exit)
+			msms = MenuState;
+
+		bool createNew = GuiFloatBox(screenWidth * 1.75, screenHeight * 1.7 + 10, 150, 50, "Add new ->");
+		if (createNew)
+			msms = BuildParticleState;
+
+		Vector3 angle = { DEG2RAD * pitch, DEG2RAD * yaw, DEG2RAD * roll };
 
 		EndDrawing();
 	}
@@ -292,14 +308,14 @@ struct SampleScene
 		}
 
 		Color baseColor = BLANK;
+		Color textColor = Color(225, 225, 225, 255);
 
 		GuiDrawRectangle(bounds, GuiGetStyle(VALUEBOX, BORDER_WIDTH),
 			Fade(GetColor(GuiGetStyle(VALUEBOX, BORDER + (state * 3))), guiAlpha), baseColor);
 
 		if (text != NULL)
 		{
-			GuiDrawText(text, bounds, TEXT_ALIGN_CENTER,
-				Fade(GetColor(GuiGetStyle(LABEL, TEXT + (state * 3))), guiAlpha));
+			GuiDrawText(text, bounds, TEXT_ALIGN_CENTER, textColor);
 		}
 
 		return isPressed;
@@ -308,9 +324,7 @@ struct SampleScene
 	void MenuScene(State& msms)
 	{
 		BeginDrawing();
-
 		ClearBackground(BLACK);
-
 		ShowCursor();
 
 		windowPosition.x += (mousePosition.x - panOffset.x);
@@ -334,9 +348,7 @@ struct SampleScene
 	void ParticlePicker(State& msms)
 	{
 		BeginDrawing();
-
 		ClearBackground(BLACK);
-
 		ShowCursor();
 
 		windowPosition.x += (mousePosition.x - panOffset.x);
@@ -354,6 +366,25 @@ struct SampleScene
 					msms = State::DisplayParticleState;
 			}
 		}
+
+		EndDrawing();
+	}
+
+	void ParticleBuilder(State& msms)
+	{
+		BeginDrawing();
+		ClearBackground(BLACK);
+		ShowCursor();
+
+		windowPosition.x += (mousePosition.x - panOffset.x);
+		windowPosition.y += (mousePosition.y - panOffset.y);
+
+		bool createNew = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 20, 150, 50, "Create new emitter");
+		bool openExisting = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 150, 150, 50, "Add property");
+
+		bool exit = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 280, 150, 50, "Exit");
+		if (exit)
+			CloseWindow();
 
 		EndDrawing();
 	}
