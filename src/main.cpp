@@ -25,7 +25,14 @@
 // When in a particle scene you freecam fly with left joycon and rotate with right joycon
 // In menu state only right joycon is used for cursor
 
+// Plan for today:
+// Create feature to drag blueprint
+// Add fields to blueprint
+// Utilize this component for both emitter and property bps (Although im considering if only property bps should have fields)
+
 SampleScene ss;
+
+
 
 int main()
 {
@@ -33,7 +40,7 @@ int main()
 
 	SetTargetFPS(30);
 
-	InitWindow(800, 600, "Hello Raylib");
+	InitWindow(1600, 1200, "Hello Raylib");
 	SearchAndSetResourceDir("resources");
 
 	ss.SetupData();

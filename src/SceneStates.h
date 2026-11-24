@@ -22,25 +22,13 @@
 
 #include "ElixrUtil.h"
 
-#define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
+#include "ElixrUI.h"
 
 CameraController camera;
 ParticleEmitter pe;
 
-struct EmitterBlueprint
-{
-	Vector2 position;
-	// is mouse/joycon holding this, and if so we wanna be able to drag it
-	bool isHeld = false;
-	ParticleEmitter* emitterReference = nullptr;
-
-};
-
-struct PropertyBlueprint
-{
-	
-};
+inline void SetParticlePositions(int modelCount, float modelScale, const Model& model, std::vector<float>& vertexPositions);
+inline void PlayIdleAnimation(Model& model, ModelAnimation* anims, int animCount);
 
 enum State
 {
@@ -75,6 +63,8 @@ struct SampleScene
 	FlockbehaviorProperty fbp;
 	VortexProperty vp;
 	PointAttractorProperty pap;
+
+	BlueprintBuilder bb;
 
 	Shader shader;
 	Light lights[3];
@@ -252,11 +242,11 @@ struct SampleScene
 		else
 			ShowCursor();
 
-		bool exit = GuiFloatBox(screenWidth / 4, screenHeight * 1.7 + 10, 150, 50, "<- Back");
+		bool exit = GuiFloatBox(screenWidth / 4, screenHeight * 1.9 + 10, 150, 50, "<- Back");
 		if (exit)
 			msms = MenuState;
 
-		bool createNew = GuiFloatBox(screenWidth * 1.75, screenHeight * 1.7 + 10, 150, 50, "Add new ->");
+		bool createNew = GuiFloatBox(screenWidth * 1.75, screenHeight * 1.9 + 10, 150, 50, "Add new ->");
 		if (createNew)
 			msms = BuildParticleState;
 
@@ -271,9 +261,6 @@ struct SampleScene
 	bool dragWindow;
 	bool exitWindow;
 
-	int screenWidth;
-	int screenHeight;
-
 	void SetupMainScene()
 	{
 		mousePosition = { 0 };
@@ -281,44 +268,6 @@ struct SampleScene
 		panOffset = mousePosition;
 		dragWindow = false;
 		exitWindow = false;
-
-		screenWidth = 800;
-		screenHeight = 600;
-	}
-
-	bool GuiFloatBox(int width, int height, int sizeX, int sizeY, const char* text)
-	{
-		bool isPressed = false;
-
-		Rectangle bounds = Rectangle((width - sizeX) / 2.0f, (height - sizeY) / 2.0f, (float)sizeX, (float)sizeY);
-		GuiState state = STATE_NORMAL;
-
-		if (state != STATE_DISABLED)
-		{
-			Vector2 mousePoint = GetMousePosition();
-
-			if (CheckCollisionPointRec(mousePoint, bounds))
-			{
-				state = STATE_FOCUSED;
-				if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-				{
-					isPressed = true;
-				}
-			}
-		}
-
-		Color baseColor = BLANK;
-		Color textColor = Color(225, 225, 225, 255);
-
-		GuiDrawRectangle(bounds, GuiGetStyle(VALUEBOX, BORDER_WIDTH),
-			Fade(GetColor(GuiGetStyle(VALUEBOX, BORDER + (state * 3))), guiAlpha), baseColor);
-
-		if (text != NULL)
-		{
-			GuiDrawText(text, bounds, TEXT_ALIGN_CENTER, textColor);
-		}
-
-		return isPressed;
 	}
 
 	void MenuScene(State& msms)
@@ -379,10 +328,21 @@ struct SampleScene
 		windowPosition.x += (mousePosition.x - panOffset.x);
 		windowPosition.y += (mousePosition.y - panOffset.y);
 
-		bool createNew = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 20, 150, 50, "Create new emitter");
-		bool openExisting = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 150, 150, 50, "Add property");
+		bool createNewEmitter = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 20, 150, 50, "Create new emitter");
+		if (createNewEmitter)
+			bb.AddNewEmitter();
 
-		bool exit = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 280, 150, 50, "Exit");
+		bool createNewProperty = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 150, 150, 50, "Add property");
+		if (createNewProperty)
+			bb.AddNewProperty();
+
+		bb.DisplayAllBlueprints();
+
+		bool back = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 280, 150, 50, "Back");
+		if (back)
+			msms = State::MenuState;
+
+		bool exit = GuiFloatBox(screenWidth / 4, screenHeight / 4 + 410, 150, 50, "Exit");
 		if (exit)
 			CloseWindow();
 

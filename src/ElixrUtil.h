@@ -9,9 +9,84 @@
 #include "ModelLoading.h"
 #include "CameraController.h"
 #include "ParticlePrimitives.h"
+#include "ElixrUI.h"
+#include "SceneStates.h"
+
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
 
 unsigned int animIndex = 0;
 unsigned int animCurrentFrame = 0;
+
+inline bool GuiFloatBoxBP(int width, int height, int sizeX, int sizeY, const char* text)
+{
+	bool isPressed = false;
+
+	Rectangle bounds = Rectangle((width - sizeX) / 2.0f, (height - sizeY) / 2.0f, (float)sizeX, (float)sizeY);
+	GuiState state = STATE_NORMAL;
+
+	if (state != STATE_DISABLED)
+	{
+		Vector2 mousePoint = GetMousePosition();
+
+		if (CheckCollisionPointRec(mousePoint, bounds))
+		{
+			state = STATE_FOCUSED;
+			if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+			{
+				isPressed = true;
+			}
+		}
+	}
+
+	Color baseColor = BLANK;
+	Color textColor = Color(225, 225, 225, 255);
+
+	GuiDrawRectangle(bounds, GuiGetStyle(VALUEBOX, BORDER_WIDTH),
+		Fade(GetColor(GuiGetStyle(VALUEBOX, BORDER + (state * 3))), guiAlpha), baseColor);
+
+	if (text != NULL)
+	{
+		GuiDrawText(text, bounds, TEXT_ALIGN_CENTER, textColor);
+	}
+
+	return isPressed;
+}
+
+inline bool GuiFloatBox(int width, int height, int sizeX, int sizeY, const char* text)
+{
+	bool isPressed = false;
+
+	Rectangle bounds = Rectangle((width - sizeX) / 2.0f, (height - sizeY) / 2.0f, (float)sizeX, (float)sizeY);
+	GuiState state = STATE_NORMAL;
+
+	if (state != STATE_DISABLED)
+	{
+		Vector2 mousePoint = GetMousePosition();
+
+		if (CheckCollisionPointRec(mousePoint, bounds))
+		{
+			state = STATE_FOCUSED;
+			if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+			{
+				isPressed = true;
+			}
+		}
+	}
+
+	Color baseColor = BLANK;
+	Color textColor = Color(225, 225, 225, 255);
+
+	GuiDrawRectangle(bounds, GuiGetStyle(VALUEBOX, BORDER_WIDTH),
+		Fade(GetColor(GuiGetStyle(VALUEBOX, BORDER + (state * 3))), guiAlpha), baseColor);
+
+	if (text != NULL)
+	{
+		GuiDrawText(text, bounds, TEXT_ALIGN_CENTER, textColor);
+	}
+
+	return isPressed;
+}
 
 inline void PlayIdleAnimation(Model& model, ModelAnimation* anims, int animCount)
 {

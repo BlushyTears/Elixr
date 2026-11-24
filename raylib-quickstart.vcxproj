@@ -31,6 +31,7 @@
     <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>raylib-quickstart</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -302,6 +303,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\CameraController.h" />
+    <ClInclude Include="src\ElixrUI.h" />
     <ClInclude Include="src\ElixrUtil.h" />
     <ClInclude Include="src\Properties.h" />
     <ClInclude Include="src\raygui.h" />

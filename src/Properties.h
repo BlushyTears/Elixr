@@ -1,13 +1,11 @@
 #pragma once
 
-#include "raylib.h"
-
-#include "raymath.h"
 #include <vector>
 #include <queue>
-
 #include <random>
 
+#include "raylib.h"
+#include "raymath.h"
 #include "ParticlePrimitives.h"
 
 // A module that describes some sort of behavior to a particle ecs style
